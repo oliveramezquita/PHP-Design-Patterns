@@ -2,6 +2,12 @@
 
 namespace PerficientTest\Builder;
 
+/**
+ * La interfaz Builder declara un conjunto de métodos para ensamblar una consulta SQL.
+ * 
+ * Todos los pasos de construcción devuelven el objeto constructor actual para permitir el
+ * encadenamiento: $builder->select(...)->where(...)
+ */
 interface SQLQueryBuilder
 {
     public function select(string $table, array $fields): SQLQueryBuilder;
@@ -13,6 +19,12 @@ interface SQLQueryBuilder
     public function getSQL(): string;
 }
 
+/**
+ * Cada Concrete Builder corresponde a un dialecto SQL específico y puede implementar los pasos
+ * del constructor de forma un poco diferente a los demás.
+ * 
+ * Este Concrete Builder puede crear consultas SQL compatibles con MySQL.
+ */
 class MySQLQueryBuilder implements SQLQueryBuilder
 {
     protected $query;
@@ -22,6 +34,9 @@ class MySQLQueryBuilder implements SQLQueryBuilder
         $this->query = new \stdClass();
     }
 
+    /**
+     * Crea una consulta SELECT base.
+     */
     public function select(string $table, array $fields): SQLQueryBuilder
     {
         $this->reset();
@@ -31,6 +46,9 @@ class MySQLQueryBuilder implements SQLQueryBuilder
         return $this;
     }
 
+    /**
+     * Agrega una condición WHERE.
+     */
     public function where(string $field, string $value, string $operator = '='): SQLQueryBuilder
     {
         if (!in_array($this->query->type, ['select', 'update', 'delete'])) {
@@ -41,6 +59,9 @@ class MySQLQueryBuilder implements SQLQueryBuilder
         return $this;
     }
 
+    /**
+     * Agrega una restricción LÍMITE.
+     */
     public function limit(int $start, int $offset): SQLQueryBuilder
     {
         if (!in_array($this->query->type, ['select'])) {
@@ -51,6 +72,9 @@ class MySQLQueryBuilder implements SQLQueryBuilder
         return $this;
     }
 
+    /**
+     * Obtenga la cadena de consulta final.
+     */
     public function getSQL(): string
     {
         $query = $this->query;
@@ -66,8 +90,17 @@ class MySQLQueryBuilder implements SQLQueryBuilder
     }
 }
 
+/**
+ * Este Concrete Builder es compatible con PostgreSQL. Si bien Postgres es muy similar a
+ * MySQL, todavía tiene varias diferencias. Para reutilizar el código común, lo ampliamos
+ * desde el constructor MySQL, mientras anulamos algunos de los pasos de construcción.
+ * 
+ */
 class PostgresQueryBuilder extends MySQLQueryBuilder
 {
+    /**
+     * Entre otras cosas, PostgresSQL tiene una sintaxis LIMIT ligeramente diferente.
+     */
     public function limit(int $start, int $offset): SQLQueryBuilder
     {
         parent::limit($start, $offset);
@@ -78,6 +111,17 @@ class PostgresQueryBuilder extends MySQLQueryBuilder
     }
 }
 
+/**
+ * Tenga en cuenta que el código del cliente utiliza el objecto constructor directamente.
+ * En este caso no es necesaria una clase Director designada, porque el código del cliente
+ * necesita consultas diferentes casi cada vez, por lo que la secuencia de los pasos de
+ * construcción no se puede reutilizar fácilmente.
+ * 
+ * Dado que todos nuestros creadores de consultas crean productos del mismo tipo (que es
+ * una cadena), podemos interactuar con todos los creadores utilizando su interfaz común.
+ * Posteriormente, si implementamos una nueva clase Builder, podremos pasar su instancia
+ * al código del cliente existente sin romperlo gracias a la interfaz SQLQueryBuilder.
+ */
 function clientCode(SQLQueryBuilder $queyBuilder)
 {
     $query = $queyBuilder

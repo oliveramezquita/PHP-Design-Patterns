@@ -2,8 +2,10 @@
 
 namespace PerficientTest\AbstractFactory;
 
-use Twig\Enviroment;
-
+/**
+ * La interfaz Abstract Factory declara métodos de creación para cada 
+ * tipo de producto distinto.
+ */
 interface TemplateFactory
 {
     public function createTitleTemplate(): TitleTemplate;
@@ -13,6 +15,12 @@ interface TemplateFactory
     public function getRenderer(): TemplateRenderer;
 }
 
+/**
+ * Cada Concrete Factory corresponde a una variante (o familia) 
+ * específica de productos.
+ * 
+ * Esta Concrete Factory crea plantillas Twig.
+ */
 class TwigTemplateFactory implements TemplateFactory
 {
     public function createTitleTemplate(): TitleTemplate
@@ -31,6 +39,9 @@ class TwigTemplateFactory implements TemplateFactory
     }
 }
 
+/**
+ * Y esta Concrete Factory crea plantillas PHPTemplate.
+ */
 class PHPTemplateFactory implements TemplateFactory
 {
     public function createTitleTemplate(): TitleTemplate
@@ -49,11 +60,22 @@ class PHPTemplateFactory implements TemplateFactory
     }
 }
 
+/**
+ * Cada tipo de producto distinto debe tener una interfaz separada.
+ * Todas las variantes del producto deben seguir la mimsa intefaz.
+ * 
+ * Por ejemplo, esta interfaz de Abstract Product describe el
+ * comportamiento de las plantillas de títulos de página.
+ */
 interface TitleTemplate
 {
     public function getTemplateString(): string;
 }
 
+/**
+ * Este Concrete Product proporciona plantillas de títulos de
+ * páginas de Twig.
+ */
 class TwigTitleTemplate implements TitleTemplate
 {
     public function getTemplateString(): string
@@ -62,6 +84,10 @@ class TwigTitleTemplate implements TitleTemplate
     }
 }
 
+/**
+ * Y este Concrete Product proporciona plantillas de títulos de
+ * páginas PHPTemplate.
+ */
 class PHPTemplateTitleTemplate implements TitleTemplate
 {
     public function getTemplateString(): string
@@ -70,11 +96,21 @@ class PHPTemplateTitleTemplate implements TitleTemplate
     }
 }
 
+/**
+ * Este es otro tipo de Abstract Product, que describe plantillas
+ * de página completa.
+ */
 interface PageTemplate
 {
     public function getTemplateString(): string;
 }
 
+/**
+ * La plantilla de página utiliza la subplantilla de título, por lo
+ * que debemos proporcionar la forma de configurarla en el objeto de
+ * subplantilla. La Abstract Factory vinculará la plantilla de página
+ * con una plantilla de la misma variante.
+ */
 abstract class BasePageTemplate implements PageTemplate
 {
     protected $titleTemplate;
@@ -85,6 +121,9 @@ abstract class BasePageTemplate implements PageTemplate
     }
 }
 
+/**
+ * La variante Twig de las plantillas de página completa.
+ */
 class TwigPageTemplate extends BasePageTemplate
 {
     public function getTemplateString(): string
@@ -100,6 +139,9 @@ class TwigPageTemplate extends BasePageTemplate
     }
 }
 
+/**
+ * La variante PHPTemplate de las plantillas de página completa.
+ */
 class PHPTemplatePageTemplate extends BasePageTemplate
 {
     public function getTemplateString(): string
@@ -115,11 +157,21 @@ class PHPTemplatePageTemplate extends BasePageTemplate
     }
 }
 
+/**
+ * El renderizador es responsable de convertir una cadena de plantilla en el 
+ * código HTML real. Cada renderizador se comporta de manera diferente y espera
+ * que se le pase su propio tipo de cadenas de plantilla. Las plantillas horneadas
+ * con la fábrica le permiten pasar los tipos adecuados de plantillas a los
+ * renderizados adecuados.
+ */
 interface TemplateRenderer
 {
     public function render(string $templateString, array $arguments = []): string;
 }
 
+/**
+ * El renderizador de plantillas Twig.
+ */
 class TwigRenderer implements TemplateRenderer
 {
 
@@ -129,6 +181,12 @@ class TwigRenderer implements TemplateRenderer
     }
 }
 
+/**
+ * El renderizador de plantillas PHPTemplate. Tenga en cuenta que esta 
+ * implenetación es muy básica, si no tosca. El uso de la función `eval` tiene
+ * muchas implicaciones de seguridad, así que úsela con precaución de proyectos
+ * reales.
+ */
 class PHPTemplateRenderer implements TemplateRenderer
 {
     public function render(string $templateString, array $arguments = []): string
@@ -144,6 +202,11 @@ class PHPTemplateRenderer implements TemplateRenderer
     }
 }
 
+/**
+ * El código cliente. Tenga en cuenta que acepta la clase Abstract Factory como
+ * parámetro, lo que permite al cliente trabajar con cualquier tipo de Concrete
+ * Factory.
+ */
 class Page
 {
     public $title;
@@ -156,6 +219,8 @@ class Page
         $this->content = $content;
     }
 
+    // Así es como usarías la plantilla en la vida real. Tengan en cuenta que
+    // la clase página no depende de ninguna clase de plantilla concreta.  
     public function render(TemplateFactory $factory): string
     {
         $pageTemplate = $factory->createPageTemplate();
@@ -169,7 +234,14 @@ class Page
     }
 }
 
+/**
+ * Ahora, en otras partes de la aplicación, el código del cliente puede 
+ * aceptar objetos de fábrica de cualquier tipo.
+ */
 $page = new Page('Sample page', 'This is the body.');
 
 echo "Testing actual rendering with the PHPTemplate factory:\n";
 echo $page->render(new PHPTemplateFactory());
+
+//echo "Testing rendering with the Twig factory:\n";
+//echo $page->render(new TwigTemplateFactory());
